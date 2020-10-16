@@ -18,7 +18,7 @@ namespace EasyMongo
         void CommitTransaction();
         Task CommitTransactionAsync(CancellationToken cancellationToken = default);
         void DropCollection<TEntity>();
-        void DropCollection<TEntity>(CancellationToken cancellationToken = default);
+        Task DropCollectionAsync<TEntity>(CancellationToken cancellationToken = default);
         IMongoRepository<TEntity> GetRepository<TEntity>() where TEntity : IEntity<ObjectId>;
         IMongoRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : IEntity<TKey> where TKey : IEquatable<TKey>;
         IMongoCollection<TEntity> GetCollection<TEntity>(MongoCollectionSettings settings = null);

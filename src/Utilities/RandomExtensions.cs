@@ -16,7 +16,7 @@ namespace EasyMongo
                 throw new ArgumentOutOfRangeException(nameof(max), "max value must be greater than min value.");
 
             //Working with ulong so that modulo works correctly with values > long.MaxValue
-            ulong uRange = (ulong)(max - min);
+            var uRange = (ulong)(max - min);
 
             //Prevent a modulo bias; see https://stackoverflow.com/a/10984975/238419
             //for more information.
@@ -25,7 +25,7 @@ namespace EasyMongo
             ulong ulongRand;
             do
             {
-                byte[] buf = new byte[8];
+                var buf = new byte[8];
                 random.NextBytes(buf);
                 ulongRand = (ulong)BitConverter.ToInt64(buf, 0);
             } while (ulongRand > ulong.MaxValue - (((ulong.MaxValue % uRange) + 1) % uRange));

@@ -9,7 +9,7 @@ namespace EasyMongo
         public CollectionNameAttribute(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Empty collectionname not allowed", nameof(name));
+                throw new ArgumentException("Empty collection name not allowed", nameof(name));
             Name = name;
         }
     }

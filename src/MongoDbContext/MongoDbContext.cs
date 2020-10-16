@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using EasyMongo.Conventions;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using System;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,6 +18,12 @@ namespace EasyMongo
         public IMongoDatabase Database { get; }
 
         #region Ctor
+        static MongoDbContext()
+        {
+            var pack = new ConventionPack() { new IgnoreEmptyArraysConvention() };
+            ConventionRegistry.Register("Do not serialize empty lists", pack, _ => true);
+        }
+
         public MongoDbContext(IMongoDatabase mongoDatabase, IServiceProvider serviceProvider)
         {
             Database = mongoDatabase;
@@ -60,9 +67,9 @@ namespace EasyMongo
             Database.DropCollection(GetCollectionName<TEntity>());
         }
 
-        public void DropCollection<TEntity>(CancellationToken cancellationToken = default)
+        public Task DropCollectionAsync<TEntity>(CancellationToken cancellationToken = default)
         {
-            Database.DropCollectionAsync(GetCollectionName<TEntity>(), cancellationToken);
+            return Database.DropCollectionAsync(GetCollectionName<TEntity>(), cancellationToken);
         }
 
         public IMongoCollection<TEntity> GetCollection<TEntity>(MongoCollectionSettings settings = null)
@@ -82,7 +89,7 @@ namespace EasyMongo
         public void BeginTransaction(ClientSessionOptions sessionOptions = null, TransactionOptions transactionOptions = null) //StartSession
         {
             if (CurrentClientSessionHandle != null)
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("There is already an active transaction");
 
             CurrentClientSessionHandle = Client.StartSession(sessionOptions);
             CurrentClientSessionHandle.StartTransaction(transactionOptions);
@@ -91,7 +98,7 @@ namespace EasyMongo
         public void CommitTransaction()
         {
             if (CurrentClientSessionHandle == null)
-                throw new ArgumentNullException();
+                throw new InvalidOperationException("There is no active session.");
 
             CurrentClientSessionHandle.CommitTransaction();
             CurrentClientSessionHandle.Dispose();
@@ -101,7 +108,7 @@ namespace EasyMongo
         public void RollBackTransaction()
         {
             if (CurrentClientSessionHandle == null)
-                throw new ArgumentNullException();
+                throw new InvalidOperationException("There is no active session.");
 
             CurrentClientSessionHandle.AbortTransaction();
             CurrentClientSessionHandle.Dispose();
@@ -135,7 +142,7 @@ namespace EasyMongo
         public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (CurrentClientSessionHandle == null)
-                throw new ArgumentNullException();
+                throw new InvalidOperationException("There is no active session.");
 
             await CurrentClientSessionHandle.CommitTransactionAsync(cancellationToken).ConfigureAwait(false);
             CurrentClientSessionHandle.Dispose();
@@ -145,7 +152,7 @@ namespace EasyMongo
         public async Task RollBackTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (CurrentClientSessionHandle == null)
-                throw new ArgumentNullException();
+                throw new InvalidOperationException("There is no active session.");
 
             await CurrentClientSessionHandle.AbortTransactionAsync(cancellationToken).ConfigureAwait(false);
             CurrentClientSessionHandle.Dispose();
@@ -207,8 +214,7 @@ namespace EasyMongo
 
         public string GetCollectionName<TEntity>()
         {
-            var collectionName = typeof(TEntity).GetCustomAttribute<CollectionNameAttribute>(false)?.Name;
-            return collectionName ?? (typeof(TEntity).Name.Pluralize()).Camelize();
+            return CollectionNameFinder.GetCollectionName<TEntity>();
         }
     }
 }

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -167,7 +166,7 @@ namespace EasyMongo
         public async Task DeleteAsync(TKey id, CancellationToken cancellationToken = default)
         {
             //DeleteOptions
-            var result = await Collection.DeleteOneAsync(p => p.Id.Equals(id), cancellationToken).ConfigureAwait(false);
+            var result = await Collection.DeleteOneAsync(p => p.Id.Equals(id), cancellationToken);
             if (result.DeletedCount != 1)
                 throw new Exception();
         }
@@ -220,7 +219,7 @@ namespace EasyMongo
         public void Update(TEntity entity, ReplaceOptions options, CancellationToken cancellationToken)
         {
             var result = Collection.ReplaceOne(p => p.Id.Equals(entity.Id), entity, options, cancellationToken);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -231,7 +230,7 @@ namespace EasyMongo
         {
             var updateModel = CreateReplaceOneModels(entities);
             var result = Collection.BulkWrite(updateModel, options, cancellationToken);
-            if (result.ModifiedCount != entities.Count() /*|| result.RequestCount != entities.Count()*/)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -241,7 +240,7 @@ namespace EasyMongo
         protected void Update(TEntity entity, UpdateDefinition<TEntity> updateDefinition, UpdateOptions options, CancellationToken cancellationToken)
         {
             var result = Collection.UpdateOne(p => p.Id.Equals(entity.Id), updateDefinition, options, cancellationToken);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -251,7 +250,7 @@ namespace EasyMongo
         protected void Update(TKey id, UpdateDefinition<TEntity> updateDefinition, UpdateOptions options, CancellationToken cancellationToken)
         {
             var result = Collection.UpdateOne(p => p.Id.Equals(id), updateDefinition, options, cancellationToken);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -261,7 +260,7 @@ namespace EasyMongo
         protected void Update<TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> field, TProperty value, UpdateOptions options, CancellationToken cancellationToken)
         {
             var result = Collection.UpdateOne(p => p.Id.Equals(entity.Id), Builders<TEntity>.Update.Set(field, value), options, cancellationToken);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -271,7 +270,7 @@ namespace EasyMongo
         protected void Update<TProperty>(TKey id, Expression<Func<TEntity, TProperty>> field, TProperty value, UpdateOptions options, CancellationToken cancellationToken)
         {
             var result = Collection.UpdateOne(p => p.Id.Equals(id), Builders<TEntity>.Update.Set(field, value), options, cancellationToken);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -302,7 +301,7 @@ namespace EasyMongo
             //new ReplaceOptions()
             //new UpdateOptions()
             var result = await Collection.ReplaceOneAsync(p => p.Id.Equals(entity.Id), entity).ConfigureAwait(false);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -311,8 +310,7 @@ namespace EasyMongo
             var updateModel = CreateReplaceOneModels(entities);
             //BulkWriteOptions
             var result = await Collection.BulkWriteAsync(updateModel, cancellationToken: cancellationToken).ConfigureAwait(false);
-            //if (result.RequestCount != entities.Count())
-            if (result.ModifiedCount != entities.Count())
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -320,7 +318,7 @@ namespace EasyMongo
         {
             //new UpdateOptions { IsUpsert = true }
             var result = await Collection.UpdateOneAsync(p => p.Id.Equals(entity.Id), update, cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -328,7 +326,7 @@ namespace EasyMongo
         {
             //new UpdateOptions { IsUpsert = true }
             var result = await Collection.UpdateOneAsync(p => p.Id.Equals(id), update, cancellationToken: cancellationToken).ConfigureAwait(false); //UpdateManyAsync
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -336,7 +334,7 @@ namespace EasyMongo
         {
             //new UpdateOptions { IsUpsert = true }
             var result = await Collection.UpdateOneAsync(p => p.Id.Equals(entity.Id), Builders<TEntity>.Update.Set(field, value), cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (result.ModifiedCount != 1)
+            if (result.IsAcknowledged == false)
                 throw new Exception();
         }
 
@@ -345,7 +343,7 @@ namespace EasyMongo
         //    var filter = GetFilterByKey(key);
         //    //new UpdateOptions { IsUpsert = true }
         //    var result = await Collection.UpdateOneAsync(filter, Builders<TEntity>.Update.Set(field, value), cancellationToken: cancellationToken);
-        //    if (result.ModifiedCount != 1)
+        //    if (result.IsAcknowledged == false)
         //        throw new Exception();
         //}
 
@@ -450,10 +448,17 @@ namespace EasyMongo
         }
         #endregion
 
+        public IAggregateFluent<TNewResult> Join<TForeignDocument, TNewResult>(IMongoCollection<TForeignDocument> foreignCollection, Expression<Func<TEntity, object>> localField, Expression<Func<TForeignDocument, object>> foreignField, Expression<Func<TNewResult, object>> @as, AggregateLookupOptions<TForeignDocument, TNewResult> options = null)
+        {
+            return Collection.Aggregate()
+                .Lookup(foreignCollection, localField, foreignField, @as, options);
+        }
+
         #region GetAll
         public List<TEntity> GetAll() => GetAll(_ => true, default, default);
         public List<TEntity> GetAll(FindOptions options) => GetAll(_ => true, options, default);
         public List<TEntity> GetAll(CancellationToken cancellationToken) => GetAll(_ => true, default, cancellationToken);
+        public List<TEntity> GetAll(FindOptions options, CancellationToken cancellationToken) => GetAll(_ => true, options, cancellationToken);
         public List<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate) => GetAll(predicate, default, default);
         public List<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, FindOptions options) => GetAll(predicate, options, default);
         public List<TEntity> GetAll(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) => GetAll(predicate, default, cancellationToken);
@@ -472,7 +477,7 @@ namespace EasyMongo
         public TEntity First(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken) => First(predicate, default, cancellationToken);
         protected TEntity First(Expression<Func<TEntity, bool>> predicate, FindOptions options, CancellationToken cancellationToken)
         {
-            return Collection.Find(predicate, options).FirstOrDefault(cancellationToken);
+            return Collection.Find(predicate, options).First(cancellationToken);
         }
         #endregion
 
@@ -528,6 +533,7 @@ namespace EasyMongo
             //return Queryable.Count(predicate); //=> int
             //return Queryable.LongCount(predicate);
             return Collection.Find(predicate, options).CountDocuments(cancellationToken);
+            //Collection.CountDocuments
         }
         #endregion
 
@@ -1244,8 +1250,7 @@ namespace EasyMongo
         #region Utilities
         private void SetId(IEnumerable<TEntity> entities)
         {
-            if (entities == null)
-                throw new ArgumentNullException(nameof(entities));
+            entities.NotNull(nameof(entities));
 
             foreach (var entity in entities)
                 SetId(entity);
@@ -1253,8 +1258,7 @@ namespace EasyMongo
 
         private void SetId(TEntity entity)
         {
-            if (entity == null)
-                throw new ArgumentNullException(nameof(entity));
+            entity.NotNull(nameof(entity));
 
             if (entity.Id.Equals(default))
                 entity.Id = IdGenerator.GenerateNewId<TKey>();
@@ -1278,6 +1282,8 @@ namespace EasyMongo
 
         private IEnumerable<ReplaceOneModel<TEntity>> CreateReplaceOneModels(IEnumerable<TEntity> entities)
         {
+            entities.NotNull(nameof(entities));
+
             foreach (var entity in entities)
             {
                 if (/*entity.Id == null ||*/ entity.Id.Equals(default))
@@ -1289,6 +1295,7 @@ namespace EasyMongo
 
         private void AddInsertOneModel(TEntity entity)
         {
+            entity.NotNull(nameof(entity));
             var model = new InsertOneModel<TEntity>(entity);
             _bulkOperations.Add(model);
         }
@@ -1309,6 +1316,7 @@ namespace EasyMongo
 
         private void AddReplaceOneModel(Expression<Func<TEntity, bool>> predicate, TEntity entity)
         {
+            entity.NotNull(nameof(entity));
             var filter = Builders<TEntity>.Filter.Where(predicate);
             var model = new ReplaceOneModel<TEntity>(filter, entity);
             _bulkOperations.Add(model);
@@ -1316,6 +1324,7 @@ namespace EasyMongo
 
         private void AddUpdateOneModel(Expression<Func<TEntity, bool>> predicate, UpdateDefinition<TEntity> updateDefinition)
         {
+            updateDefinition.NotNull(nameof(updateDefinition));
             var filter = Builders<TEntity>.Filter.Where(predicate);
             var model = new UpdateOneModel<TEntity>(filter, updateDefinition);
             _bulkOperations.Add(model);
@@ -1323,6 +1332,7 @@ namespace EasyMongo
 
         private void AddUpdateManyModel(Expression<Func<TEntity, bool>> predicate, UpdateDefinition<TEntity> updateDefinition)
         {
+            updateDefinition.NotNull(nameof(updateDefinition));
             var filter = Builders<TEntity>.Filter.Where(predicate);
             var model = new UpdateManyModel<TEntity>(filter, updateDefinition);
             _bulkOperations.Add(model);
@@ -1330,9 +1340,11 @@ namespace EasyMongo
 
         private IEnumerable<IndexKeysDefinition<TEntity>> GetIndexKeysDefinitions(IEnumerable<MongoIndex<TEntity>> indexes)
         {
+            indexes.NotNull(nameof(indexes));
+
             foreach (var field in indexes)
             {
-                var index = field.Type switch
+                yield return field.Type switch
                 {
                     IndexType.Ascending => Builders<TEntity>.IndexKeys.Ascending(field.Field),
                     IndexType.Descending => Builders<TEntity>.IndexKeys.Descending(field.Field),
@@ -1344,14 +1356,15 @@ namespace EasyMongo
                     IndexType.Wildcard => Builders<TEntity>.IndexKeys.Wildcard(field.Field),
                     _ => throw null,
                 };
-                yield return index;
             }
         }
 
         private Expression<Func<TDocument, object>> ConvertToObjectExpression<TDocument, TValue>(Expression<Func<TDocument, TValue>> expression)
         {
+            expression.NotNull(nameof(expression));
+
             var param = expression.Parameters[0];
-            Expression body = expression.Body;
+            var body = expression.Body;
             var convert = Expression.Convert(body, typeof(object));
             return Expression.Lambda<Func<TDocument, object>>(convert, param);
         }

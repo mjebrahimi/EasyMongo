@@ -3,7 +3,7 @@ using System;
 
 namespace EasyMongo
 {
-    public interface IMongoRepository<TEntity> : 
+    public interface IMongoRepository<TEntity> :
         IMongoRepository<TEntity, ObjectId>,
         IReadMongoRepository<TEntity>,
         ICreateMongoRepsitory<TEntity>,

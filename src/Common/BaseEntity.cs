@@ -16,6 +16,11 @@ namespace EasyMongo
     public abstract class BaseEntity<TKey> : IEntity<TKey>
          where TKey : IEquatable<TKey>
     {
+        public BaseEntity()
+        {
+            Id = IdGenerator.GenerateNewId<TKey>();
+        }
+
         [BsonId]
         //[BsonElement("_id")]
         //[Key]
@@ -23,7 +28,6 @@ namespace EasyMongo
         //[BsonRepresentation(BsonType.ObjectId)]
         public TKey Id { get; set; }
 
-        //[ExtraElements]
         //[BsonIgnore]
         //[BsonRequired]
         //[BsonIgnoreIfDefault]
@@ -49,10 +53,6 @@ namespace EasyMongo
         //public ObjectId CreatedBy { get; set; } //InsertUserId
         //public ObjectId UpdatedBy { get; set; } //UpdateUserId
         //public ObjectId DeletedBy { get; set; } //DeleteUserId
-    }
-
-    public class ExtraElementsAttribute : Attribute
-    {
     }
 
     //[AttributeUsage(AttributeTargets.Property)]
