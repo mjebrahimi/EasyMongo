@@ -33,29 +33,24 @@ namespace EasyMongo
             Collection = dbContext.GetCollection<TEntity>();
         }
 
-        //public MongoRepository(IMongoCollection<TEntity> collection)
-        //{
-        //    Collection = collection;
-        //}
-
         /////////////////////////////////////////////////////////
-        ///             IClientSessionHandle
-        ///             Skip, Sort, Limit
-        ///
-        /// Find(filter) is same as Find(Builders<TDocument>.Filter.Where(filter))
-        /// But Queryable.Where(filter) uses Pipeline and it's half as slow
-        ///
-        /// Collection.Find() is as IQuerable and does not execute (apply limit on database when First method calls)
-        /// Collection.FindAsync() is as IEnumerable and execute immediately (apply limit on memory/code when First method calls)
-        ///
-        /// [Index], [NotMapped], [
-        /// [ReadConcerne], [WriteConcerne], [ReadPerfrence]
-        /// [Table], [Column], [Key]
-        /// [ExtraElements], [CreatedDate], [UpdatedDate], [DeletedDate]
-        ///
-        /// Support Buckets : https://mongodb.github.io/mongo-csharp-driver/2.9/reference/gridfs/
-        /// Special Queries : https://github.com/TurnerSoftware/MongoFramework#special-queries
-        /// OnModelCreating : https://github.com/marcrabadan/MongoDbContext#1---inherits-from-the-mongodbcontext-class
+        //             IClientSessionHandle
+        //             Skip, Sort, Limit
+        //
+        // Find(filter) is same as Find(Builders<TDocument>.Filter.Where(filter))
+        // But Queryable.Where(filter) uses Pipeline and it's half as slow
+        //
+        // Collection.Find() is as IQuerable and does not execute (apply limit on database when First method calls)
+        // Collection.FindAsync() is as IEnumerable and execute immediately (apply limit on memory/code when First method calls)
+        //
+        // [Index], [NotMapped], [
+        // [ReadConcerne], [WriteConcerne], [ReadPerfrence]
+        // [Table], [Column], [Key]
+        // [ExtraElements], [CreatedDate], [UpdatedDate], [DeletedDate]
+        //
+        // Support Buckets : https://mongodb.github.io/mongo-csharp-driver/2.9/reference/gridfs/
+        // Special Queries : https://github.com/TurnerSoftware/MongoFramework#special-queries
+        // OnModelCreating : https://github.com/marcrabadan/MongoDbContext#1---inherits-from-the-mongodbcontext-class
         /////////////////////////////////////////////////////////
 
         #region Add
@@ -950,7 +945,7 @@ namespace EasyMongo
         {
             var indexCursor = Collection.Indexes.List(cancellationToken);
             var indexes = indexCursor.ToList(cancellationToken);
-            return indexes.Select(e => e["name"].ToString()).ToList();
+            return indexes.ConvertAll(e => e["name"].ToString()); //ConvertAll() equals to .Select(e => e["name"].ToString()).ToList();
         }
 
         public bool IndexExists(string name, CancellationToken cancellationToken = default)
@@ -1137,7 +1132,7 @@ namespace EasyMongo
         {
             var indexCursor = await Collection.Indexes.ListAsync(cancellationToken).ConfigureAwait(false);
             var indexes = await indexCursor.ToListAsync(cancellationToken).ConfigureAwait(false);
-            return indexes.Select(e => e["name"].ToString()).ToList();
+            return indexes.ConvertAll(e => e["name"].ToString());
         }
 
         //CreateUniqueTextIndexAsync

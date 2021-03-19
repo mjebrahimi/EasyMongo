@@ -1,6 +1,4 @@
 ﻿using EasyMongo.Conventions;
-using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 using System;
@@ -11,8 +9,6 @@ namespace EasyMongo
 {
     public class MongoDbContext : IMongoDbContext
     {
-        private readonly IServiceProvider _serviceProvider;
-
         public IMongoClient Client { get; }
 
         public IMongoDatabase Database { get; }
@@ -24,42 +20,39 @@ namespace EasyMongo
             ConventionRegistry.Register("Do not serialize empty lists", pack, _ => true);
         }
 
-        public MongoDbContext(IMongoDatabase mongoDatabase, IServiceProvider serviceProvider)
+        public MongoDbContext(IMongoDatabase mongoDatabase)
         {
             Database = mongoDatabase;
-            Client = Database.Client;
-            _serviceProvider = serviceProvider;
+            Client = mongoDatabase.Client;
         }
 
-        public MongoDbContext(MongoClient client, string databaseName, IServiceProvider serviceProvider)
+        public MongoDbContext(IMongoClient client, string databaseName)
         {
             Client = client;
             Database = client.GetDatabase(databaseName);
-            _serviceProvider = serviceProvider;
         }
 
-        //public MongoDbContext(string connectionString, IServiceProvider serviceProvider)
-        //    : this(connectionString, new MongoUrl(connectionString).DatabaseName, serviceProvider)
-        //{
-        //}
+        public MongoDbContext(string connectionString, string databaseName)
+        {
+            Client = new MongoClient(connectionString);
+            Database = Client.GetDatabase(databaseName);
+        }
 
-        //public MongoDbContext(string connectionString, string databaseName, IServiceProvider serviceProvider)
-        //{
-        //    Client = new MongoClient(connectionString);
-        //    Database = Client.GetDatabase(databaseName);
-        //    _serviceProvider = serviceProvider;
-        //}
+        public MongoDbContext(string connectionString)
+            : this(connectionString, new MongoUrl(connectionString).DatabaseName)
+        {
+        }
         #endregion
 
-        public IMongoRepository<TEntity> GetRepository<TEntity>() where TEntity : IEntity<ObjectId>
-        {
-            return _serviceProvider.GetRequiredService<IMongoRepository<TEntity>>();
-        }
+        //public IMongoRepository<TEntity> GetRepository<TEntity>() where TEntity : IEntity<ObjectId>
+        //{
+        //    return _serviceProvider.GetRequiredService<IMongoRepository<TEntity>>();
+        //}
 
-        public IMongoRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : IEntity<TKey> where TKey : IEquatable<TKey>
-        {
-            return _serviceProvider.GetRequiredService<IMongoRepository<TEntity, TKey>>();
-        }
+        //public IMongoRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : IEntity<TKey> where TKey : IEquatable<TKey>
+        //{
+        //    return _serviceProvider.GetRequiredService<IMongoRepository<TEntity, TKey>>();
+        //}
 
         #region Collection
         public void DropCollection<TEntity>()

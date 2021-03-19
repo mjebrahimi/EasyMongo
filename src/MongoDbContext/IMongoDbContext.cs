@@ -12,6 +12,8 @@ namespace EasyMongo
         IMongoDatabase Database { get; }
         IClientSessionHandle CurrentClientSessionHandle { get; }
 
+        //IMongoRepository<TEntity> GetRepository<TEntity>() where TEntity : IEntity<ObjectId>;
+        //IMongoRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : IEntity<TKey> where TKey : IEquatable<TKey>;
         void BeginTransaction(ClientSessionOptions sessionOptions = null, TransactionOptions transactionOptions = null);
         Task BeginTransactionAsync(ClientSessionOptions sessionOptions = null, TransactionOptions transactionOptions = null, CancellationToken cancellationToken = default);
         string GetCollectionName<TEntity>();
@@ -19,8 +21,6 @@ namespace EasyMongo
         Task CommitTransactionAsync(CancellationToken cancellationToken = default);
         void DropCollection<TEntity>();
         Task DropCollectionAsync<TEntity>(CancellationToken cancellationToken = default);
-        IMongoRepository<TEntity> GetRepository<TEntity>() where TEntity : IEntity<ObjectId>;
-        IMongoRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : IEntity<TKey> where TKey : IEquatable<TKey>;
         IMongoCollection<TEntity> GetCollection<TEntity>(MongoCollectionSettings settings = null);
         void RollBackTransaction();
         Task RollBackTransactionAsync(CancellationToken cancellationToken = default);
